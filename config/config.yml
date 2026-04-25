@@ -1,0 +1,27 @@
+anchors: []
+authentication:
+  password: ''
+  username: ''
+host:
+- 0.0.0.0
+minimum-age: 10m
+port: 3030
+scan-delay: 5s
+targets:
+  autoscan: []
+  emby: []
+  jellyfin: []
+  plex: []
+triggers:
+  lidarr: []
+  manual:
+    priority: 0
+  radarr:
+  - name: radarr
+    priority: 0
+    rewrite: []
+  readarr: []
+  sonarr:
+  - name: sonarr
+    priority: 0
+    rewrite: []

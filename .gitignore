@@ -1,0 +1,30 @@
+.DS_Store
+.idea/
+.vscode/
+vendor/
+dist/
+frontend/dist/
+frontend/node_modules/
+
+# Python environments and caches
+.venv/
+.venv*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Local environment files
+.env
+.env.*
+
+*.db
+*.log
+/autoscan
+/config.yml
+
+# Local runtime/state data
+config/*.db
+config/*.log
+
+/.task/

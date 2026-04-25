@@ -1,0 +1,25 @@
+/* ── Global Design System ──────────────────────────────────────── */
+@import "./global-ui.css";
+
+/* ── Tailwind utility layer (kept for layout helpers only) ──────── */
+@tailwind utilities;
+
+/* ── Page layout helpers used by React Router pages ─────────────── */
+.page-wrapper {
+  width: 100%;
+  max-width: none;
+}
+
+/* ── Divider inside cards ──────────────────────────────────────── */
+.card-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: var(--space-md) 0;
+}
+
+/* ── Mono text helper ──────────────────────────────────────────── */
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text);
+}

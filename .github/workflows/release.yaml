@@ -1,0 +1,136 @@
+name: Docker Build
+
+on:
+  push:
+    branches:
+      - "main"
+      - "dev"
+      - "nightly"
+    tags:
+      - "v*"
+    paths-ignore:
+      - ".github/**"
+      - "LICENSE"
+      - "**.md"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (e.g., v1.2.0)"
+        required: false
+      branch:
+        description: "Branch to build"
+        required: false
+        default: "main"
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: FranzDiebold/github-env-vars-action@v2.8.0
+
+      - name: Read release.json version
+        id: release_version
+        run: |
+          VERSION=$(jq -r '.newversion' release.json)
+          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Determine Image Tags
+        id: prep
+        run: |
+          REPO=$CI_REPOSITORY_NAME
+          DOCKER_IMAGE=ghcr.io/${{ github.repository_owner }}/${REPO}
+          RELEASE_VERSION=${{ steps.release_version.outputs.version }}
+
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            TAGS="${DOCKER_IMAGE}:${RELEASE_VERSION},${DOCKER_IMAGE}:latest"
+            IMAGE_TAGS_DISPLAY="${RELEASE_VERSION}, latest"
+            BRANCH="main"
+            BRANCH_COLOR="4885929"
+          elif [[ "$GITHUB_REF" == refs/heads/dev ]]; then
+            TAGS="${DOCKER_IMAGE}:dev"
+            IMAGE_TAGS_DISPLAY="dev"
+            BRANCH="dev"
+            BRANCH_COLOR="16753920"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            TAGS="${DOCKER_IMAGE}:${VERSION},${DOCKER_IMAGE}:latest"
+            IMAGE_TAGS_DISPLAY="${VERSION}, latest"
+            BRANCH="${VERSION}"
+            BRANCH_COLOR="2201331"
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            BRANCH_TAG=$(echo "$BRANCH" | sed -r 's/[:\.\/]+/-/g')
+            TAGS="${DOCKER_IMAGE}:${BRANCH_TAG}"
+            IMAGE_TAGS_DISPLAY="${BRANCH_TAG}"
+            BRANCH_COLOR="10233776"
+          fi
+
+          CREATED=$(date +'%Y-%m-%dT%H:%M:%SZ')
+
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "image_tags_display=${IMAGE_TAGS_DISPLAY}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "branch_color=${BRANCH_COLOR}" >> $GITHUB_OUTPUT
+          echo "title=${GITHUB_REPOSITORY}" >> $GITHUB_OUTPUT
+          echo "version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "created=${CREATED}" >> $GITHUB_OUTPUT
+
+      # Docker Setup
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3.9.0
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.PACKAGES }}
+
+      # ── Single image (React SPA embedded in FastAPI) ──────────────────────
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v6.14.0
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: ${{ github.event_name != 'pull_request' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ${{ steps.prep.outputs.tags }}
+          build-args: |
+            VERSION=${{ steps.release_version.outputs.version }}
+            COMMIT_TAG=${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=${{ steps.prep.outputs.title }}
+            org.opencontainers.image.version=${{ steps.prep.outputs.version }}
+            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+            org.opencontainers.image.description=${{ github.repository }} – FastAPI + React
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Image digests
+        run: |
+          echo ${{ steps.docker_build.outputs.digest }}
+
+      # Optional: Add a notification step here if/when a webhook variable is configured.

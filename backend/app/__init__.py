@@ -1,0 +1,3 @@
+"""
+Autoscan – Python/FastAPI rewrite
+"""

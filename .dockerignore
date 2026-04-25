@@ -1,0 +1,18 @@
+.git
+.github
+.vscode
+
+# Python environments / caches
+.venv
+.venv312
+**/__pycache__
+**/*.pyc
+
+# Frontend build and dependency artifacts
+frontend/node_modules
+frontend/dist
+
+# Local runtime/config artifacts
+config/autoscan.db
+config/activity.log
+*.log

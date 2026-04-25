@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  autoscan:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autoscan
+    restart: unless-stopped
+    volumes:
+      - ./config:/config # config.yml + autoscan.db
+      - /mnt/media:/mnt/media:ro # adjust to your media paths
+    environment:
+      - AUTOSCAN_CONFIG_DIR=/config
+      - TZ=Europe/Berlin # change to your timezone (e.g. America/New_York, Europe/London)
+    ports:
+      - "3030:3030"
