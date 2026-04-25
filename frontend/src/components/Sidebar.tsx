@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation } from "react-router-dom";
-import { fetchConfig } from "../api/client";
+import { fetchConfig, fetchHealth } from "../api/client";
 import {
   LayoutDashboard,
   ListTodo,
@@ -28,6 +28,11 @@ export default function Sidebar() {
   const { data: config } = useQuery({
     queryKey: ["config"],
     queryFn: fetchConfig,
+  });
+  const { data: health } = useQuery({
+    queryKey: ["health"],
+    queryFn: fetchHealth,
+    refetchInterval: 5000,
   });
 
   const configuredUsername =
@@ -136,6 +141,9 @@ export default function Sidebar() {
             <div className="sidebar-user-meta">
               <div className="sidebar-user-name">{configuredUsername}</div>
               <div className="sidebar-user-role">{badgeLabel}</div>
+              {health?.version ? (
+                <div className="sidebar-user-role">v{health.version}</div>
+              ) : null}
             </div>
           </div>
         </div>
