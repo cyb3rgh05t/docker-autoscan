@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig, type AutoscanConfig } from "../api/client";
 import { useState, useEffect, useRef } from "react";
-import { unstable_useBlocker as useBlocker } from "react-router-dom";
+import { useBlocker } from "react-router-dom";
 import {
   Save,
   RefreshCw,

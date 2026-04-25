@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig } from "../api/client";
 import { useEffect, useState } from "react";
-import { unstable_useBlocker as useBlocker } from "react-router-dom";
+import { useBlocker } from "react-router-dom";
 import {
   Plus,
   Trash2,
