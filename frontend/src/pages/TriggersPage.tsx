@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig } from "../api/client";
 import { useState, useEffect } from "react";
-import { useBlocker } from "react-router-dom";
+
 import {
   Plus,
   Trash2,
@@ -237,24 +237,6 @@ export default function TriggersPage() {
       setDraft(config as Record<string, unknown>);
     }
   }, [config, dirty]);
-
-  const blocker = useBlocker(dirty);
-
-  useEffect(() => {
-    if (blocker.state !== "blocked") {
-      return;
-    }
-
-    const shouldLeave = window.confirm(
-      "You have unsaved trigger changes. Leave this page without saving?",
-    );
-
-    if (shouldLeave) {
-      blocker.proceed();
-    } else {
-      blocker.reset();
-    }
-  }, [blocker]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {

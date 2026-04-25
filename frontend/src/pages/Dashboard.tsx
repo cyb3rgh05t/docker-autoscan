@@ -125,7 +125,7 @@ export default function Dashboard() {
 
   const { data: history = [] } = useQuery({
     queryKey: ["history"],
-    queryFn: () => fetchHistory(50),
+    queryFn: () => fetchHistory(10),
     refetchInterval: 5000,
   });
 
@@ -156,11 +156,7 @@ export default function Dashboard() {
     >
       <PageHeader
         title="Dashboard"
-        subtitle={
-          health?.version
-            ? `v${health.version} · ${health.commit}`
-            : "Connecting…"
-        }
+        subtitle="System status and scan activity"
         icon={LayoutDashboard}
         actions={
           <div

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig, type AutoscanConfig } from "../api/client";
 import { useState, useEffect, useRef } from "react";
-import { useBlocker } from "react-router-dom";
+
 import {
   Save,
   RefreshCw,
@@ -63,24 +63,6 @@ export default function ConfigPage() {
       setDirty(false);
     }
   }, [config]);
-
-  const blocker = useBlocker(dirty);
-
-  useEffect(() => {
-    if (blocker.state !== "blocked") {
-      return;
-    }
-
-    const shouldLeave = window.confirm(
-      "You have unsaved config changes. Leave this page without saving?",
-    );
-
-    if (shouldLeave) {
-      blocker.proceed();
-    } else {
-      blocker.reset();
-    }
-  }, [blocker]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
