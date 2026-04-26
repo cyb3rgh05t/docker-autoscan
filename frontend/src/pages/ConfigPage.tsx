@@ -22,6 +22,10 @@ import {
   ShieldCheck,
   Server,
   Workflow,
+  ScrollText,
+  Rocket,
+  Terminal,
+  FolderArchive,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageHeader from "../components/PageHeader";
@@ -219,111 +223,91 @@ export default function ConfigPage() {
       )}
 
       {tab === "about" ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "1rem",
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-              background:
-                "radial-gradient(circle at 100% 0%, rgba(216,237,24,0.08), rgba(10,10,10,1) 50%)",
-            }}
-          >
-            <div>
-              <h2 className="heading-md" style={{ marginBottom: "0.35rem" }}>
-                Autoscan Control Plane
-              </h2>
-              <p className="text-body">
-                Autoscan verbindet Webhook-Events mit deinen Media-Zielen und
-                steuert die Queue-Verarbeitung zentral. Die App kombiniert eine
-                FastAPI Runtime mit einer React UI fur Monitoring, Debugging und
-                Konfigurationspflege.
-              </p>
+        <div className="settings-about-grid">
+          <div className="settings-hero-card">
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-primary">
+                <Info size={14} />
+              </div>
+              <div>
+                <p className="settings-eyebrow">About</p>
+                <h2 className="heading-md">Autoscan Control Plane</h2>
+              </div>
             </div>
-            <div
-              className="card-nested"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.6rem",
-              }}
-            >
-              <div className="card-row">
-                <span className="text-stat-label">Version</span>
-                <span className="text-mono">
-                  {health?.version ?? "unknown"}
-                </span>
+            <p className="text-body">
+              Autoscan verbindet Webhook-Events mit deinen Media-Zielen und
+              steuert die Queue-Verarbeitung zentral. Die App kombiniert eine
+              FastAPI Runtime mit einer React UI fur Monitoring, Debugging und
+              Konfigurationspflege.
+            </p>
+
+            <div className="settings-runtime-grid">
+              <div className="settings-runtime-item">
+                <p className="text-stat-label">Version</p>
+                <p className="text-mono">{health?.version ?? "unknown"}</p>
               </div>
-              <div className="card-row">
-                <span className="text-stat-label">Commit</span>
-                <span className="text-mono">{health?.commit ?? "unknown"}</span>
+              <div className="settings-runtime-item">
+                <p className="text-stat-label">Commit</p>
+                <p className="text-mono">{health?.commit ?? "unknown"}</p>
               </div>
-              <div className="card-row">
-                <span className="text-stat-label">Uptime</span>
-                <span className="text-mono">
+              <div className="settings-runtime-item">
+                <p className="text-stat-label">Uptime</p>
+                <p className="text-mono">
                   {stats ? formatUptime(stats.uptime_seconds) : "unknown"}
-                </span>
+                </p>
               </div>
-              <div className="card-row">
-                <span className="text-stat-label">Queue</span>
-                <span className="text-mono">
+              <div className="settings-runtime-item">
+                <p className="text-stat-label">Queue</p>
+                <p className="text-mono">
                   {stats ? `${stats.scans_remaining} waiting` : "unknown"}
-                </span>
+                </p>
               </div>
             </div>
           </div>
 
-          <div
-            className="card"
-            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-          >
-            <h2 className="heading-md">Core Modules</h2>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-                gap: "0.7rem",
-              }}
-            >
+          <div className="settings-section-card">
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-purple">
+                <Cpu size={14} />
+              </div>
+              <div>
+                <p className="settings-eyebrow">Architecture</p>
+                <h2 className="heading-md">Core Modules</h2>
+              </div>
+            </div>
+
+            <div className="settings-module-grid">
               {[
                 {
                   title: "Webhook Ingress",
                   body: "Sonarr, Radarr, Lidarr, Readarr und manuelle Trigger.",
                   Icon: Workflow,
+                  tone: "settings-icon-emerald",
                 },
                 {
                   title: "Target Dispatch",
                   body: "Plex, Emby, Jellyfin oder chained Autoscan Targets.",
                   Icon: Server,
+                  tone: "settings-icon-blue",
                 },
                 {
                   title: "Queue + History",
                   body: "Priorisierte Queue, persistiert in SQLite, mit Verlauf.",
                   Icon: Database,
+                  tone: "settings-icon-amber",
                 },
                 {
                   title: "Runtime API",
                   body: "FastAPI Endpunkte fur Stats, Health, Logs und Config.",
-                  Icon: Cpu,
+                  Icon: ScrollText,
+                  tone: "settings-icon-primary",
                 },
-              ].map(({ title, body, Icon }) => (
-                <div key={title} className="card-nested">
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      marginBottom: "0.35rem",
-                    }}
-                  >
-                    <Icon size={14} style={{ color: "var(--color-primary)" }} />
+              ].map(({ title, body, Icon, tone }) => (
+                <div key={title} className="settings-module-card">
+                  <div className="settings-module-head">
+                    <span className={`settings-icon-chip ${tone}`}>
+                      <Icon size={13} />
+                    </span>
                     <p className="heading-sm">{title}</p>
                   </div>
                   <p className="text-small">{body}</p>
@@ -332,18 +316,18 @@ export default function ConfigPage() {
             </div>
           </div>
 
-          <div
-            className="card"
-            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-          >
-            <h2 className="heading-md">How Autoscan Works</h2>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.6rem",
-              }}
-            >
+          <div className="settings-section-card">
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-emerald">
+                <Rocket size={14} />
+              </div>
+              <div>
+                <p className="settings-eyebrow">Data Flow</p>
+                <h2 className="heading-md">How Autoscan Works</h2>
+              </div>
+            </div>
+
+            <div className="settings-flow-list">
               {[
                 "Trigger event arrives at /triggers/{name}",
                 "Path and metadata are normalized and queued",
@@ -351,52 +335,51 @@ export default function ConfigPage() {
                 "Configured targets receive scan/update request",
                 "Result is written into history and activity.log",
               ].map((step, index) => (
-                <div key={step} className="card-row">
-                  <span className="badge badge-primary badge-mini">
-                    {index + 1}
-                  </span>
+                <div key={step} className="settings-flow-item">
+                  <span className="settings-step-dot">{index + 1}</span>
                   <span className="text-body">{step}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div
-            className="card"
-            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-          >
-            <h2 className="heading-md">Ops Quick Reference</h2>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.6rem",
-              }}
-            >
-              <div className="card-row">
+          <div className="settings-section-card">
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-blue">
+                <ShieldCheck size={14} />
+              </div>
+              <div>
+                <p className="settings-eyebrow">Operations</p>
+                <h2 className="heading-md">Ops Quick Reference</h2>
+              </div>
+            </div>
+
+            <div className="settings-kv-list">
+              <div className="settings-kv-row">
                 <span className="text-stat-label">Config path</span>
                 <span className="text-mono">/config/config.yml</span>
               </div>
-              <div className="card-row">
+              <div className="settings-kv-row">
                 <span className="text-stat-label">Database</span>
                 <span className="text-mono">/config/autoscan.db</span>
               </div>
-              <div className="card-row">
+              <div className="settings-kv-row">
                 <span className="text-stat-label">Log file</span>
                 <span className="text-mono">/config/activity.log</span>
               </div>
-              <div className="card-row">
+              <div className="settings-kv-row">
                 <span className="text-stat-label">Health API</span>
                 <span className="text-mono">/api/health</span>
               </div>
-              <div className="card-row">
+              <div className="settings-kv-row">
                 <span className="text-stat-label">Stats API</span>
                 <span className="text-mono">/api/stats</span>
               </div>
             </div>
+
             <div
               className="infobox infobox-info"
-              style={{ marginTop: "0.25rem" }}
+              style={{ marginTop: "0.75rem" }}
             >
               <ShieldCheck size={14} style={{ marginRight: "0.4rem" }} />
               Tipp: Prufe nach Updates immer zuerst Version und Commit uber
@@ -405,16 +388,8 @@ export default function ConfigPage() {
               </span>
               .
             </div>
-            <div
-              className="card-nested"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "0.75rem",
-                flexWrap: "wrap",
-              }}
-            >
+
+            <div className="settings-build-track">
               <div>
                 <p className="text-stat-label">Build Track</p>
                 <p className="text-body">main, dev, nightly, manual dispatch</p>
@@ -428,7 +403,7 @@ export default function ConfigPage() {
       ) : null}
 
       {tab === "howto" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div className="settings-howto-wrap">
           <div className="infobox infobox-info">
             Open the service on{" "}
             <span className="text-mono">http://localhost:3030</span> when
@@ -437,22 +412,14 @@ export default function ConfigPage() {
             local frontend development.
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "1rem",
-            }}
-          >
-            <div
-              className="card"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.9rem",
-              }}
-            >
-              <h2 className="heading-md">Quick Start</h2>
+          <div className="settings-howto-grid">
+            <div className="settings-section-card">
+              <div className="settings-section-head">
+                <div className="settings-icon-chip settings-icon-primary">
+                  <Rocket size={14} />
+                </div>
+                <h2 className="heading-md">Quick Start</h2>
+              </div>
               <div className="card-nested">
                 <p className="text-mono">docker-compose up -d --build</p>
               </div>
@@ -462,15 +429,13 @@ export default function ConfigPage() {
               </p>
             </div>
 
-            <div
-              className="card"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.9rem",
-              }}
-            >
-              <h2 className="heading-md">Webhook Format</h2>
+            <div className="settings-section-card">
+              <div className="settings-section-head">
+                <div className="settings-icon-chip settings-icon-blue">
+                  <Terminal size={14} />
+                </div>
+                <h2 className="heading-md">Webhook Format</h2>
+              </div>
               <div className="card-nested">
                 <p className="text-mono">POST /triggers/&#123;name&#125;</p>
               </div>
@@ -480,31 +445,23 @@ export default function ConfigPage() {
               </p>
             </div>
 
-            <div
-              className="card"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.9rem",
-              }}
-            >
-              <h2 className="heading-md">Important Files</h2>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.65rem",
-                }}
-              >
-                <div className="card-row">
+            <div className="settings-section-card">
+              <div className="settings-section-head">
+                <div className="settings-icon-chip settings-icon-amber">
+                  <FolderArchive size={14} />
+                </div>
+                <h2 className="heading-md">Important Files</h2>
+              </div>
+              <div className="settings-kv-list">
+                <div className="settings-kv-row">
                   <span className="text-mono">config/config.yml</span>
                   <span className="text-small">Runtime config</span>
                 </div>
-                <div className="card-row">
+                <div className="settings-kv-row">
                   <span className="text-mono">config/autoscan.db</span>
                   <span className="text-small">Queue database</span>
                 </div>
-                <div className="card-row">
+                <div className="settings-kv-row">
                   <span className="text-mono">config/activity.log</span>
                   <span className="text-small">Runtime log</span>
                 </div>
