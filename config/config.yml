@@ -1,19 +1,19 @@
 anchors: []
 authentication:
-  password: 9ffe4e761f
-  username: cyb3rgh05t
+  password: ''
+  username: ''
 minimum-age: 1m
 port: 3030
 scan-delay: 15s
 scan-stats: 30s
 targets:
   autoscan:
-  - password: 9ffe4e761f
+  - password: ''
     url: http://autoscan:3030
-    username: cyb3rgh05t
+    username: ''
   plex:
-  - token: 4uxy3xuiV5TTUGqJWzry
-    url: http://193.108.118.53:32400
+  - token: ''
+    url: ''http://193.108.118.53:32400''
 triggers:
   manual:
     priority: 0
