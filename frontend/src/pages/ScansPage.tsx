@@ -17,6 +17,7 @@ import {
   XCircle,
   ListX,
   ListTodo,
+  FolderInput,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageHeader from "../components/PageHeader";
@@ -32,13 +33,9 @@ export default function ScansPage() {
   const qc = useQueryClient();
   const [folder, setFolder] = useState("");
   const [priority, setPriority] = useState(0);
-  const [tab, setTab] = useState<"queue" | "history">("queue");
+  const [refreshing, setRefreshing] = useState(false);
 
-  const {
-    data: scans = [],
-    isFetching: loadingScans,
-    refetch: refetchScans,
-  } = useQuery({
+  const { data: scans = [], refetch: refetchScans } = useQuery({
     queryKey: ["scans"],
     queryFn: fetchScans,
     refetchInterval: 5000,
@@ -79,6 +76,15 @@ export default function ScansPage() {
     onError: () => toast.error("Failed to clear queue"),
   });
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchScans(), refetchHistory()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <div
       className="page-wrapper"
@@ -92,14 +98,22 @@ export default function ScansPage() {
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               className="btn"
-              onClick={() => {
-                refetchScans();
-                refetchHistory();
-              }}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              style={
+                refreshing
+                  ? {
+                      color: "var(--color-text-muted)",
+                      borderColor: "var(--color-border)",
+                      opacity: 0.75,
+                    }
+                  : undefined
+              }
             >
               <RefreshCw
                 size={15}
-                className={loadingScans ? "animate-spin" : ""}
+                className={refreshing ? "animate-spin" : ""}
+                style={{ color: "var(--color-primary)" }}
               />
               Refresh
             </button>
@@ -118,9 +132,12 @@ export default function ScansPage() {
 
       {/* Add scan form */}
       <div className="card">
-        <h2 className="heading-sm" style={{ marginBottom: "1rem" }}>
-          Add Manual Scan
-        </h2>
+        <div className="settings-section-head" style={{ marginBottom: "1rem" }}>
+          <div className="settings-icon-chip settings-icon-primary">
+            <FolderInput size={14} />
+          </div>
+          <h2 className="heading-sm">Add Manual Scan</h2>
+        </div>
         <div style={{ display: "flex", gap: "0.75rem" }}>
           <input
             className="input"
@@ -149,26 +166,16 @@ export default function ScansPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="tab-container">
-        {(["queue", "history"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={tab === t ? "tab tab-active" : "tab"}
-          >
-            <span className="tab-label">
-              {t === "queue" ? "Scan Queue" : "History"}
-            </span>
-            <span className="tab-count">
-              {t === "queue" ? scans.length : history.length}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Queue tab */}
-      {tab === "queue" && (
+      <div className="card">
+        <div className="settings-section-head" style={{ marginBottom: "1rem" }}>
+          <div className="settings-icon-chip settings-icon-blue">
+            <ListTodo size={14} />
+          </div>
+          <h2 className="heading-sm">Scan Queue</h2>
+          <span className="tab-count" style={{ marginLeft: "auto" }}>
+            {scans.length}
+          </span>
+        </div>
         <div className="table-container">
           {scans.length === 0 ? (
             <div
@@ -228,10 +235,18 @@ export default function ScansPage() {
             </table>
           )}
         </div>
-      )}
+      </div>
 
-      {/* History tab */}
-      {tab === "history" && (
+      <div className="card">
+        <div className="settings-section-head" style={{ marginBottom: "1rem" }}>
+          <div className="settings-icon-chip settings-icon-emerald">
+            <CheckCircle2 size={14} />
+          </div>
+          <h2 className="heading-sm">History</h2>
+          <span className="tab-count" style={{ marginLeft: "auto" }}>
+            {history.length}
+          </span>
+        </div>
         <div className="table-container">
           {history.length === 0 ? (
             <div
@@ -304,7 +319,7 @@ export default function ScansPage() {
             </table>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

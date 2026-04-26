@@ -1,27 +1,27 @@
 anchors: []
 authentication:
-  password: ''
-  username: ''
-host:
-- 0.0.0.0
-minimum-age: 10m
+  password: 9ffe4e761f
+  username: cyb3rgh05t
+minimum-age: 1m
 port: 3030
-scan-delay: 5s
+scan-delay: 15s
+scan-stats: 30s
 targets:
-  autoscan: []
-  emby: []
-  jellyfin: []
-  plex: []
+  autoscan:
+  - password: 9ffe4e761f
+    url: http://autoscan:3030
+    username: cyb3rgh05t
+  plex:
+  - token: 4uxy3xuiV5TTUGqJWzry
+    url: http://193.108.118.53:32400
 triggers:
-  lidarr: []
   manual:
     priority: 0
   radarr:
+  - name: radarr4k
+    priority: 2
   - name: radarr
-    priority: 0
-    rewrite: []
-  readarr: []
+    priority: 2
   sonarr:
   - name: sonarr
-    priority: 0
-    rewrite: []
+    priority: 2

@@ -1,69 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchConfig,
-  saveConfig,
-  fetchHealth,
-  fetchStats,
-  type AutoscanConfig,
-} from "../api/client";
-import { useState, useEffect, useRef } from "react";
-
+import { fetchConfig, saveConfig, type AutoscanConfig } from "../api/client";
+import { useState, useEffect } from "react";
 import {
   Save,
   RefreshCw,
   AlertCircle,
   Settings,
-  Info,
-  BookOpen,
-  FileCode2,
-  Cpu,
-  Database,
-  GitBranch,
-  ShieldCheck,
-  Server,
+  Shield,
+  TimerReset,
+  SlidersHorizontal,
   Workflow,
-  ScrollText,
-  Rocket,
-  Terminal,
-  FolderArchive,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageHeader from "../components/PageHeader";
+import { useUnsavedChanges } from "../components/UnsavedChangesContext";
 
-const tabs = [
-  {
-    key: "about",
-    label: "About",
-    icon: Info,
-    description: "Project overview and runtime details",
-  },
-  {
-    key: "howto",
-    label: "How To",
-    icon: BookOpen,
-    description: "Quick usage and setup guidance",
-  },
-  {
-    key: "config",
-    label: "Config",
-    icon: FileCode2,
-    description: "Complete raw configuration editor",
-  },
-] as const;
-
-type SettingsTab = (typeof tabs)[number]["key"];
-
-function formatUptime(seconds: number): string {
-  if (seconds < 60) return `${Math.floor(seconds)}s`;
-  if (seconds < 3600)
-    return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return `${h}h ${m}m`;
-}
+type DraftConfig = Record<string, unknown>;
 
 export default function ConfigPage() {
   const qc = useQueryClient();
+  const { setHasUnsavedChanges, requestNavigation } = useUnsavedChanges();
+
   const {
     data: config,
     isLoading,
@@ -73,30 +30,12 @@ export default function ConfigPage() {
     queryFn: fetchConfig,
   });
 
-  const { data: health } = useQuery({
-    queryKey: ["health"],
-    queryFn: fetchHealth,
-    refetchInterval: 30000,
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: fetchStats,
-    refetchInterval: 5000,
-  });
-
-  const [raw, setRaw] = useState("");
-  const [parseError, setParseError] = useState("");
-  const [tab, setTab] = useState<SettingsTab>("about");
+  const [draft, setDraft] = useState<DraftConfig>({});
   const [dirty, setDirty] = useState(false);
-  const rawEditorRef = useRef<HTMLTextAreaElement | null>(null);
-  const lastSavedRawRef = useRef("");
 
   useEffect(() => {
     if (config) {
-      const next = JSON.stringify(config, null, 2);
-      setRaw(next);
-      lastSavedRawRef.current = next;
+      setDraft(config as DraftConfig);
       setDirty(false);
     }
   }, [config]);
@@ -115,36 +54,84 @@ export default function ConfigPage() {
   }, [dirty]);
 
   useEffect(() => {
-    if (tab !== "config" || !rawEditorRef.current) {
-      return;
-    }
+    setHasUnsavedChanges(dirty);
+  }, [dirty, setHasUnsavedChanges]);
 
-    const editor = rawEditorRef.current;
-    editor.style.height = "0px";
-    editor.style.height = `${editor.scrollHeight}px`;
-  }, [raw, tab]);
+  useEffect(() => {
+    return () => setHasUnsavedChanges(false);
+  }, [setHasUnsavedChanges]);
 
   const saveMut = useMutation({
     mutationFn: (data: AutoscanConfig) => saveConfig(data),
     onSuccess: (_result, variables) => {
       toast.success("Config saved");
-      const pretty = JSON.stringify(variables, null, 2);
-      setRaw(pretty);
-      lastSavedRawRef.current = pretty;
+      setDraft(variables as DraftConfig);
       setDirty(false);
       qc.invalidateQueries({ queryKey: ["config"] });
     },
     onError: () => toast.error("Failed to save config"),
   });
 
+  const patchDraft = (patch: DraftConfig) => {
+    setDraft((prev) => ({ ...prev, ...patch }));
+    setDirty(true);
+  };
+
+  const authentication =
+    (draft.authentication as Record<string, string> | undefined) || {};
+  const triggers =
+    (draft.triggers as Record<string, unknown> | undefined) || {};
+  const targets = (draft.targets as Record<string, unknown> | undefined) || {};
+  const manualTrigger =
+    (triggers.manual as Record<string, unknown> | undefined) || {};
+  const anchors = Array.isArray(draft.anchors)
+    ? (draft.anchors as string[])
+    : [];
+
+  const triggerCount = Object.keys(triggers).length;
+  const targetCount = Object.keys(targets).length;
+
+  const updateAuthentication = (
+    field: "username" | "password",
+    value: string,
+  ) => {
+    patchDraft({ authentication: { ...authentication, [field]: value } });
+  };
+
+  const updateTopLevel = (field: string, value: unknown) => {
+    patchDraft({ [field]: value });
+  };
+
+  const updateManualPriority = (value: number) => {
+    patchDraft({
+      triggers: {
+        ...triggers,
+        manual: {
+          ...manualTrigger,
+          priority: value,
+        },
+      },
+    });
+  };
+
+  const updateStringList = (field: "anchors", value: string) => {
+    const list = value
+      .split(/\r?\n|,/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    patchDraft({ [field]: list });
+  };
+
   const handleSave = () => {
-    try {
-      const parsed = JSON.parse(raw);
-      setParseError("");
-      saveMut.mutate(parsed);
-    } catch (e: unknown) {
-      setParseError(e instanceof Error ? e.message : "Invalid JSON");
+    saveMut.mutate(draft as AutoscanConfig);
+  };
+
+  const handleDiscard = () => {
+    if (!config) {
+      return;
     }
+    setDraft(config as DraftConfig);
+    setDirty(false);
   };
 
   if (isLoading) {
@@ -178,14 +165,35 @@ export default function ConfigPage() {
     >
       <PageHeader
         title="Settings"
-        subtitle="Documentation, setup help, and raw config editing"
+        subtitle="Update core runtime, auth, and manual trigger settings"
         icon={Settings}
         actions={
-          tab === "config" ? (
+          <div
+            style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}
+          >
+            {dirty && (
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  color: "var(--color-text-muted)",
+                }}
+              >
+                Unsaved changes
+              </span>
+            )}
+            {dirty && (
+              <button
+                className="btn btn-ghost"
+                onClick={handleDiscard}
+                disabled={saveMut.isPending}
+              >
+                Discard
+              </button>
+            )}
             <button
               className="btn btn-primary"
               onClick={handleSave}
-              disabled={saveMut.isPending || !!parseError}
+              disabled={saveMut.isPending || !dirty}
             >
               {saveMut.isPending ? (
                 <RefreshCw size={15} className="animate-spin" />
@@ -194,332 +202,303 @@ export default function ConfigPage() {
               )}
               Save Changes
             </button>
-          ) : null
+          </div>
         }
       />
 
-      <div className="tab-container">
-        {tabs.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={tab === key ? "tab tab-active" : "tab"}
-          >
-            <Icon size={15} />
-            <span className="tab-label">{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {tab === "config" && parseError && (
-        <div
-          className="infobox infobox-error"
-          style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
-        >
-          <AlertCircle size={16} style={{ flexShrink: 0 }} />
-          {parseError}
-        </div>
-      )}
-
-      {tab === "about" ? (
-        <div className="settings-about-grid">
-          <div className="settings-hero-card">
-            <div className="settings-section-head">
-              <div className="settings-icon-chip settings-icon-primary">
-                <Info size={14} />
-              </div>
-              <div>
-                <p className="settings-eyebrow">About</p>
-                <h2 className="heading-md">Autoscan Control Plane</h2>
-              </div>
-            </div>
-            <p className="text-body">
-              Autoscan verbindet Webhook-Events mit deinen Media-Zielen und
-              steuert die Queue-Verarbeitung zentral. Die App kombiniert eine
-              FastAPI Runtime mit einer React UI fur Monitoring, Debugging und
-              Konfigurationspflege.
-            </p>
-
-            <div className="settings-runtime-grid">
-              <div className="settings-runtime-item">
-                <p className="text-stat-label">Version</p>
-                <p className="text-mono">{health?.version ?? "unknown"}</p>
-              </div>
-              <div className="settings-runtime-item">
-                <p className="text-stat-label">Commit</p>
-                <p className="text-mono">{health?.commit ?? "unknown"}</p>
-              </div>
-              <div className="settings-runtime-item">
-                <p className="text-stat-label">Uptime</p>
-                <p className="text-mono">
-                  {stats ? formatUptime(stats.uptime_seconds) : "unknown"}
-                </p>
-              </div>
-              <div className="settings-runtime-item">
-                <p className="text-stat-label">Queue</p>
-                <p className="text-mono">
-                  {stats ? `${stats.scans_remaining} waiting` : "unknown"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="settings-section-card">
-            <div className="settings-section-head">
-              <div className="settings-icon-chip settings-icon-purple">
-                <Cpu size={14} />
-              </div>
-              <div>
-                <p className="settings-eyebrow">Architecture</p>
-                <h2 className="heading-md">Core Modules</h2>
-              </div>
-            </div>
-
-            <div className="settings-module-grid">
-              {[
-                {
-                  title: "Webhook Ingress",
-                  body: "Sonarr, Radarr, Lidarr, Readarr und manuelle Trigger.",
-                  Icon: Workflow,
-                  tone: "settings-icon-emerald",
-                },
-                {
-                  title: "Target Dispatch",
-                  body: "Plex, Emby, Jellyfin oder chained Autoscan Targets.",
-                  Icon: Server,
-                  tone: "settings-icon-blue",
-                },
-                {
-                  title: "Queue + History",
-                  body: "Priorisierte Queue, persistiert in SQLite, mit Verlauf.",
-                  Icon: Database,
-                  tone: "settings-icon-amber",
-                },
-                {
-                  title: "Runtime API",
-                  body: "FastAPI Endpunkte fur Stats, Health, Logs und Config.",
-                  Icon: ScrollText,
-                  tone: "settings-icon-primary",
-                },
-              ].map(({ title, body, Icon, tone }) => (
-                <div key={title} className="settings-module-card">
-                  <div className="settings-module-head">
-                    <span className={`settings-icon-chip ${tone}`}>
-                      <Icon size={13} />
-                    </span>
-                    <p className="heading-sm">{title}</p>
-                  </div>
-                  <p className="text-small">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="settings-section-card">
-            <div className="settings-section-head">
-              <div className="settings-icon-chip settings-icon-emerald">
-                <Rocket size={14} />
-              </div>
-              <div>
-                <p className="settings-eyebrow">Data Flow</p>
-                <h2 className="heading-md">How Autoscan Works</h2>
-              </div>
-            </div>
-
-            <div className="settings-flow-list">
-              {[
-                "Trigger event arrives at /triggers/{name}",
-                "Path and metadata are normalized and queued",
-                "Processor picks next job based on priority",
-                "Configured targets receive scan/update request",
-                "Result is written into history and activity.log",
-              ].map((step, index) => (
-                <div key={step} className="settings-flow-item">
-                  <span className="settings-step-dot">{index + 1}</span>
-                  <span className="text-body">{step}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="settings-section-card">
-            <div className="settings-section-head">
-              <div className="settings-icon-chip settings-icon-blue">
-                <ShieldCheck size={14} />
-              </div>
-              <div>
-                <p className="settings-eyebrow">Operations</p>
-                <h2 className="heading-md">Ops Quick Reference</h2>
-              </div>
-            </div>
-
-            <div className="settings-kv-list">
-              <div className="settings-kv-row">
-                <span className="text-stat-label">Config path</span>
-                <span className="text-mono">/config/config.yml</span>
-              </div>
-              <div className="settings-kv-row">
-                <span className="text-stat-label">Database</span>
-                <span className="text-mono">/config/autoscan.db</span>
-              </div>
-              <div className="settings-kv-row">
-                <span className="text-stat-label">Log file</span>
-                <span className="text-mono">/config/activity.log</span>
-              </div>
-              <div className="settings-kv-row">
-                <span className="text-stat-label">Health API</span>
-                <span className="text-mono">/api/health</span>
-              </div>
-              <div className="settings-kv-row">
-                <span className="text-stat-label">Stats API</span>
-                <span className="text-mono">/api/stats</span>
-              </div>
-            </div>
-
-            <div
-              className="infobox infobox-info"
-              style={{ marginTop: "0.75rem" }}
-            >
-              <ShieldCheck size={14} style={{ marginRight: "0.4rem" }} />
-              Tipp: Prufe nach Updates immer zuerst Version und Commit uber
-              <span className="text-mono" style={{ marginLeft: "0.35rem" }}>
-                /api/health
-              </span>
-              .
-            </div>
-
-            <div className="settings-build-track">
-              <div>
-                <p className="text-stat-label">Build Track</p>
-                <p className="text-body">main, dev, nightly, manual dispatch</p>
-              </div>
-              <span className="badge badge-purple">
-                <GitBranch size={12} /> GitHub Actions + GHCR
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {tab === "howto" ? (
-        <div className="settings-howto-wrap">
-          <div className="infobox infobox-info">
-            Open the service on{" "}
-            <span className="text-mono">http://localhost:3030</span> when
-            running in Docker, or use the Vite dev server on{" "}
-            <span className="text-mono">http://localhost:5173</span> during
-            local frontend development.
-          </div>
-
-          <div className="settings-howto-grid">
-            <div className="settings-section-card">
-              <div className="settings-section-head">
-                <div className="settings-icon-chip settings-icon-primary">
-                  <Rocket size={14} />
-                </div>
-                <h2 className="heading-md">Quick Start</h2>
-              </div>
-              <div className="card-nested">
-                <p className="text-mono">docker-compose up -d --build</p>
-              </div>
-              <p className="text-small">
-                This builds the single image, mounts the config directory, and
-                starts the API plus UI together.
-              </p>
-            </div>
-
-            <div className="settings-section-card">
-              <div className="settings-section-head">
-                <div className="settings-icon-chip settings-icon-blue">
-                  <Terminal size={14} />
-                </div>
-                <h2 className="heading-md">Webhook Format</h2>
-              </div>
-              <div className="card-nested">
-                <p className="text-mono">POST /triggers/&#123;name&#125;</p>
-              </div>
-              <p className="text-small">
-                The trigger name must match the configured trigger entry in your
-                config.
-              </p>
-            </div>
-
-            <div className="settings-section-card">
-              <div className="settings-section-head">
-                <div className="settings-icon-chip settings-icon-amber">
-                  <FolderArchive size={14} />
-                </div>
-                <h2 className="heading-md">Important Files</h2>
-              </div>
-              <div className="settings-kv-list">
-                <div className="settings-kv-row">
-                  <span className="text-mono">config/config.yml</span>
-                  <span className="text-small">Runtime config</span>
-                </div>
-                <div className="settings-kv-row">
-                  <span className="text-mono">config/autoscan.db</span>
-                  <span className="text-small">Queue database</span>
-                </div>
-                <div className="settings-kv-row">
-                  <span className="text-mono">config/activity.log</span>
-                  <span className="text-small">Runtime log</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {tab === "config" ? (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr",
+          gap: "1rem",
+        }}
+      >
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <div
-            className="flex-between"
             style={{
-              padding: "0.625rem 1rem",
-              background: "rgba(255,255,255,0.02)",
+              padding: "0.9rem 1rem",
               borderBottom: "1px solid var(--color-border)",
             }}
           >
-            <span
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-primary">
+                <TimerReset size={14} />
+              </div>
+              <h2 className="heading-md">Runtime</h2>
+            </div>
+          </div>
+
+          <div style={{ padding: "1rem", display: "grid", gap: "0.8rem" }}>
+            <div
               style={{
-                fontSize: "0.75rem",
-                color: "var(--color-text-muted)",
-                fontFamily: "var(--font-mono)",
+                display: "grid",
+                gridTemplateColumns: "180px minmax(0, 1fr)",
+                gap: "0.8rem",
+                alignItems: "center",
               }}
             >
-              config.yml (JSON view)
-            </span>
-            <span
-              style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}
+              <label className="label" style={{ marginBottom: 0 }}>
+                Port
+              </label>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                value={Number(draft.port ?? 3030)}
+                onChange={(e) => updateTopLevel("port", Number(e.target.value))}
+              />
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px minmax(0, 1fr)",
+                gap: "0.8rem",
+                alignItems: "center",
+              }}
             >
-              {raw.split("\n").length} lines
-            </span>
+              <label className="label" style={{ marginBottom: 0 }}>
+                Minimum Age
+              </label>
+              <input
+                className="input"
+                placeholder="10m"
+                value={String(draft["minimum-age"] ?? "")}
+                onChange={(e) => updateTopLevel("minimum-age", e.target.value)}
+              />
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px minmax(0, 1fr)",
+                gap: "0.8rem",
+                alignItems: "center",
+              }}
+            >
+              <label className="label" style={{ marginBottom: 0 }}>
+                Scan Delay
+              </label>
+              <input
+                className="input"
+                placeholder="5s"
+                value={String(draft["scan-delay"] ?? "")}
+                onChange={(e) => updateTopLevel("scan-delay", e.target.value)}
+              />
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px minmax(0, 1fr)",
+                gap: "0.8rem",
+                alignItems: "center",
+              }}
+            >
+              <label className="label" style={{ marginBottom: 0 }}>
+                Scan Stats Interval
+              </label>
+              <input
+                className="input"
+                placeholder="1h"
+                value={String(draft["scan-stats"] ?? "")}
+                onChange={(e) => updateTopLevel("scan-stats", e.target.value)}
+              />
+            </div>
           </div>
-          <textarea
-            ref={rawEditorRef}
-            className="input"
-            style={{
-              minHeight: "60vh",
-              fontFamily: "var(--font-mono)",
-              fontSize: "0.8125rem",
-              borderRadius: 0,
-              border: "none",
-              resize: "vertical",
-              width: "100%",
-              display: "block",
-              overflow: "hidden",
-            }}
-            value={raw}
-            onChange={(e) => {
-              setRaw(e.target.value);
-              setDirty(e.target.value !== lastSavedRawRef.current);
-              setParseError("");
-            }}
-            spellCheck={false}
-          />
         </div>
-      ) : null}
+
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              padding: "0.9rem 1rem",
+              borderBottom: "1px solid var(--color-border)",
+            }}
+          >
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-blue">
+                <Shield size={14} />
+              </div>
+              <h2 className="heading-md">Authentication</h2>
+            </div>
+          </div>
+
+          <div style={{ padding: "1rem", display: "grid", gap: "0.8rem" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px minmax(0, 1fr)",
+                gap: "0.8rem",
+                alignItems: "center",
+              }}
+            >
+              <label className="label" style={{ marginBottom: 0 }}>
+                Username
+              </label>
+              <input
+                className="input"
+                value={authentication.username ?? ""}
+                onChange={(e) =>
+                  updateAuthentication("username", e.target.value)
+                }
+                placeholder="Leave empty to disable auth"
+              />
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px minmax(0, 1fr)",
+                gap: "0.8rem",
+                alignItems: "center",
+              }}
+            >
+              <label className="label" style={{ marginBottom: 0 }}>
+                Password
+              </label>
+              <input
+                className="input"
+                type="password"
+                value={authentication.password ?? ""}
+                onChange={(e) =>
+                  updateAuthentication("password", e.target.value)
+                }
+                placeholder="Leave empty to disable auth"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              padding: "0.9rem 1rem",
+              borderBottom: "1px solid var(--color-border)",
+            }}
+          >
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-emerald">
+                <SlidersHorizontal size={14} />
+              </div>
+              <h2 className="heading-md">Manual Trigger</h2>
+            </div>
+          </div>
+
+          <div style={{ padding: "1rem", display: "grid", gap: "0.8rem" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px minmax(0, 1fr)",
+                gap: "0.8rem",
+                alignItems: "center",
+              }}
+            >
+              <label className="label" style={{ marginBottom: 0 }}>
+                Default Priority
+              </label>
+              <input
+                className="input"
+                type="number"
+                value={Number(manualTrigger.priority ?? 0)}
+                onChange={(e) => updateManualPriority(Number(e.target.value))}
+              />
+            </div>
+            <p className="text-small" style={{ marginLeft: "180px" }}>
+              Controls the default priority used by the manual trigger endpoint.
+            </p>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              padding: "0.9rem 1rem",
+              borderBottom: "1px solid var(--color-border)",
+            }}
+          >
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-blue">
+                <Workflow size={14} />
+              </div>
+              <h2 className="heading-md">Targets & Triggers</h2>
+            </div>
+          </div>
+
+          <div style={{ padding: "1rem", display: "grid", gap: "0.8rem" }}>
+            <p className="text-small" style={{ margin: 0 }}>
+              These config blocks are part of the full config.yml, but edited in
+              their dedicated pages.
+            </p>
+            <p className="text-small" style={{ margin: 0 }}>
+              Current config contains {triggerCount} trigger section(s) and{" "}
+              {targetCount} target section(s).
+            </p>
+            <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => requestNavigation("/triggers")}
+              >
+                Open Triggers
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => requestNavigation("/targets")}
+              >
+                Open Targets
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              padding: "0.9rem 1rem",
+              borderBottom: "1px solid var(--color-border)",
+            }}
+          >
+            <div className="settings-section-head">
+              <div className="settings-icon-chip settings-icon-amber">
+                <Settings size={14} />
+              </div>
+              <h2 className="heading-md">Anchors / Checkfiles</h2>
+            </div>
+          </div>
+
+          <div style={{ padding: "1rem", display: "grid", gap: "0.8rem" }}>
+            <p className="text-small" style={{ margin: 0 }}>
+              Enter one value per line. Comma-separated values are also
+              supported.
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px minmax(0, 1fr)",
+                gap: "0.8rem",
+                alignItems: "start",
+              }}
+            >
+              <label
+                className="label"
+                style={{ marginBottom: 0, paddingTop: "0.45rem" }}
+              >
+                Anchor Files
+              </label>
+              <div style={{ display: "grid", gap: "0.45rem" }}>
+                <textarea
+                  className="input"
+                  style={{ minHeight: "7rem" }}
+                  value={anchors.join("\n")}
+                  onChange={(e) => updateStringList("anchors", e.target.value)}
+                  placeholder="/data/media/.autoscan-anchor"
+                />
+                <p className="text-small" style={{ margin: 0 }}>
+                  All listed files must exist. If one anchor is missing, scan
+                  processing pauses until it is available again.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

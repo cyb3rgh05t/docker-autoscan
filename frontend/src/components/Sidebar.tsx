@@ -5,26 +5,32 @@ import { fetchConfig, fetchHealth } from "../api/client";
 import {
   LayoutDashboard,
   ListTodo,
+  ScrollText,
   Settings,
   Webhook,
   MonitorPlay,
+  Info,
   UserRound,
   Menu,
   X,
 } from "lucide-react";
 import AutoscanLogo from "./AutoscanLogo";
+import { useUnsavedChanges } from "./UnsavedChangesContext";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/scans", label: "Scan Queue", icon: ListTodo },
   { to: "/triggers", label: "Triggers", icon: Webhook },
   { to: "/targets", label: "Targets", icon: MonitorPlay },
+  { to: "/logs", label: "Logs", icon: ScrollText },
   { to: "/config", label: "Settings", icon: Settings },
+  { to: "/about", label: "About", icon: Info },
 ];
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { requestNavigation } = useUnsavedChanges();
   const { data: config } = useQuery({
     queryKey: ["config"],
     queryFn: fetchConfig,
@@ -117,7 +123,11 @@ export default function Sidebar() {
             <NavLink
               key={to}
               to={to}
-              onClick={() => setMobileOpen(false)}
+              onClick={(event) => {
+                event.preventDefault();
+                setMobileOpen(false);
+                requestNavigation(to);
+              }}
               className={({ isActive }) =>
                 isActive ? "nav-item nav-item-active" : "nav-item"
               }

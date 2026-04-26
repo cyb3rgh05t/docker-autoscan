@@ -111,7 +111,7 @@ async def stats():
 @router.get("/logs")
 async def logs(lines: int = 200):
     # Keep payload bounded for UI polling.
-    lines = max(20, min(lines, 1000))
+    lines = max(1, min(lines, 1000))
 
     path = Path(settings.log_path)
     if not path.exists():

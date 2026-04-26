@@ -8,7 +8,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
+
+def _utc_iso(dt: datetime) -> str:
+    """Serialize a naive (UTC) datetime as an ISO string with trailing Z."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.isoformat() + "Z"
+    return dt.isoformat()
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +161,10 @@ class ScanOut(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @field_serializer("time")
+    def serialize_time(self, dt: datetime) -> str:
+        return _utc_iso(dt)
+
 
 class ScanHistoryOut(BaseModel):
     id: int
@@ -164,6 +177,10 @@ class ScanHistoryOut(BaseModel):
     message: str
 
     model_config = {"from_attributes": True}
+
+    @field_serializer("triggered_at", "completed_at")
+    def serialize_dt(self, dt: datetime) -> str:
+        return _utc_iso(dt)
 
 
 class StatsOut(BaseModel):

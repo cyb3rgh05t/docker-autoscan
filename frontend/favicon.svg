@@ -1,17 +1,9 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="#070707" stroke="#2A2A2A" stroke-width="2.2"/>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="#070707" stroke="#2A2A2A" stroke-width="2.2" />
 
-  <g transform="translate(10 10)">
-    <path d="M22 6L31 11L22 16L13 11L22 6Z" fill="#D8ED18"/>
-    <path d="M13 11V21L22 26V16L13 11Z" fill="#9FB31A"/>
-    <path d="M31 11V21L22 26V16L31 11Z" fill="#C7DB1A"/>
-
-    <path d="M10 18L18 22.5L10 27L2 22.5L10 18Z" fill="#BFD42A"/>
-    <path d="M2 22.5V31L10 35.5V27L2 22.5Z" fill="#819313"/>
-    <path d="M18 22.5V31L10 35.5V27L18 22.5Z" fill="#A8BD19"/>
-
-    <path d="M34 18L42 22.5L34 27L26 22.5L34 18Z" fill="#D8ED18"/>
-    <path d="M26 22.5V31L34 35.5V27L26 22.5Z" fill="#8FA217"/>
-    <path d="M42 22.5V31L34 35.5V27L42 22.5Z" fill="#B7CC1D"/>
+  <g transform="translate(6.8 6.8) scale(2.1)" stroke="#D8ED18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
+    <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06" />
+    <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8" />
   </g>
 </svg>

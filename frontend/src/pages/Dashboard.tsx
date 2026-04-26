@@ -14,14 +14,12 @@ import {
   Clock,
   Activity,
   LayoutDashboard,
-  Circle,
   XCircle,
   Server,
-  ChevronRight,
-  TerminalSquare,
-  AlertTriangle,
-  Bug,
-  Info,
+  ScrollText,
+  History,
+  Inbox,
+  RefreshCw,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 
@@ -48,8 +46,8 @@ function StatCard({
         <Icon size={22} />
       </div>
       <div>
-        <p className="text-stat-value">{value}</p>
         <p className="text-stat-label">{label}</p>
+        <p className="text-stat-value">{value}</p>
       </div>
     </div>
   );
@@ -90,25 +88,24 @@ function parseTargetLabel(raw: string): { name: string; endpoint?: string } {
 
 function toneForLogLevel(level: string): {
   tone: "error" | "warning" | "debug" | "success" | "info";
-  icon: React.ElementType;
 } {
   if (level === "ERR" || level === "ERROR" || level === "CRT") {
-    return { tone: "error", icon: XCircle };
+    return { tone: "error" };
   }
 
   if (level === "WRN" || level === "WARNING") {
-    return { tone: "warning", icon: AlertTriangle };
+    return { tone: "warning" };
   }
 
   if (level === "DBG" || level === "DEBUG") {
-    return { tone: "debug", icon: Bug };
+    return { tone: "debug" };
   }
 
   if (level === "INF" || level === "INFO") {
-    return { tone: "success", icon: Info };
+    return { tone: "success" };
   }
 
-  return { tone: "info", icon: TerminalSquare };
+  return { tone: "info" };
 }
 
 function parseRuntimeLogLine(line: string): {
@@ -116,7 +113,6 @@ function parseRuntimeLogLine(line: string): {
   level?: string;
   message: string;
   tone: "error" | "warning" | "debug" | "success" | "info";
-  icon: React.ElementType;
 } {
   const match = line.match(
     /^(?<ts>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+(?<level>[A-Z]{3,8})\s+(?<msg>.*)$/,
@@ -126,7 +122,6 @@ function parseRuntimeLogLine(line: string): {
     return {
       message: line,
       tone: "info",
-      icon: TerminalSquare,
     };
   }
 
@@ -138,7 +133,6 @@ function parseRuntimeLogLine(line: string): {
     level,
     message: match.groups.msg,
     tone: tone.tone,
-    icon: tone.icon,
   };
 }
 
@@ -177,35 +171,72 @@ function priorityTone(priority: number): {
 export default function Dashboard() {
   const runtimeLogContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const { data: stats } = useQuery({
+  const {
+    data: stats,
+    refetch: refetchStats,
+    isFetching: statsFetching,
+  } = useQuery({
     queryKey: ["stats"],
     queryFn: fetchStats,
     refetchInterval: 5000,
   });
 
-  const { data: health } = useQuery({
+  const {
+    data: health,
+    refetch: refetchHealth,
+    isFetching: healthFetching,
+  } = useQuery({
     queryKey: ["health"],
     queryFn: fetchHealth,
     refetchInterval: 30000,
   });
 
-  const { data: scans = [] } = useQuery({
+  const {
+    data: scans = [],
+    refetch: refetchScans,
+    isFetching: scansFetching,
+  } = useQuery({
     queryKey: ["scans"],
     queryFn: fetchScans,
     refetchInterval: 5000,
   });
 
-  const { data: history = [] } = useQuery({
+  const {
+    data: history = [],
+    refetch: refetchHistory,
+    isFetching: historyFetching,
+  } = useQuery({
     queryKey: ["history"],
     queryFn: () => fetchHistory(10),
     refetchInterval: 5000,
   });
 
-  const { data: runtimeLogs = [] } = useQuery({
+  const {
+    data: runtimeLogs = [],
+    refetch: refetchRuntimeLogs,
+    isFetching: runtimeLogsFetching,
+  } = useQuery({
     queryKey: ["runtime-logs"],
-    queryFn: () => fetchLogs(220),
+    queryFn: () => fetchLogs(50),
     refetchInterval: 5000,
   });
+
+  const isRefreshing =
+    statsFetching ||
+    healthFetching ||
+    scansFetching ||
+    historyFetching ||
+    runtimeLogsFetching;
+
+  const refreshDashboard = async () => {
+    await Promise.all([
+      refetchStats(),
+      refetchHealth(),
+      refetchScans(),
+      refetchHistory(),
+      refetchRuntimeLogs(),
+    ]);
+  };
 
   useEffect(() => {
     const container = runtimeLogContainerRef.current;
@@ -231,15 +262,29 @@ export default function Dashboard() {
         subtitle="System status and scan activity"
         icon={LayoutDashboard}
         actions={
-          <div
-            className={
-              health?.status === "ok"
-                ? "badge badge-success"
-                : "badge badge-error"
-            }
-          >
-            <Circle size={7} style={{ fill: "currentColor" }} />
-            {health?.status === "ok" ? "Online" : "Offline"}
+          <div className="dashboard-header-actions">
+            <button
+              type="button"
+              className="btn btn-primary dashboard-refresh-btn"
+              onClick={refreshDashboard}
+              disabled={isRefreshing}
+            >
+              <RefreshCw
+                size={14}
+                className={isRefreshing ? "animate-spin" : ""}
+              />
+              Refresh
+            </button>
+            <div
+              className={
+                health?.status === "ok"
+                  ? "dashboard-status-badge dashboard-status-online"
+                  : "dashboard-status-badge dashboard-status-offline"
+              }
+            >
+              <span className="dashboard-status-dot" />
+              {health?.status === "ok" ? "Online" : "Offline"}
+            </div>
           </div>
         }
       />
@@ -273,13 +318,35 @@ export default function Dashboard() {
           icon={Activity}
           iconClass="icon-wrapper-purple"
         />
+        <StatCard
+          label="In Queue"
+          value={scans.length}
+          icon={Inbox}
+          iconClass="icon-wrapper-primary"
+        />
+        <StatCard
+          label="History Entries"
+          value={history.length}
+          icon={History}
+          iconClass="icon-wrapper-success"
+        />
       </div>
 
       {stats && Object.keys(stats.targets_available).length > 0 && (
         <div className="card">
-          <h2 className="heading-md" style={{ marginBottom: "1rem" }}>
-            Target Status
-          </h2>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.65rem",
+              marginBottom: "1rem",
+            }}
+          >
+            <span className="card-icon-chip card-icon-blue">
+              <Server size={19} />
+            </span>
+            <h2 className="heading-md">Target Status</h2>
+          </div>
           <div className="dashboard-target-grid">
             {Object.entries(stats.targets_available).map(([rawName, ok]) => {
               const parsed = parseTargetLabel(rawName);
@@ -289,7 +356,7 @@ export default function Dashboard() {
                   <div className="dashboard-target-head">
                     <div className="dashboard-target-name-wrap">
                       <span className="dashboard-target-icon">
-                        <Server size={12} />
+                        <Server size={13} />
                       </span>
                       <span className="dashboard-target-name">
                         {parsed.name}
@@ -334,13 +401,20 @@ export default function Dashboard() {
               flexWrap: "wrap",
             }}
           >
-            <div>
-              <h2 className="heading-md">Pending Scans</h2>
-              <p className="text-small">
-                {scans.length === 0
-                  ? "No folders waiting right now"
-                  : `${scans.length} folder${scans.length === 1 ? "" : "s"} currently queued`}
-              </p>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}
+            >
+              <span className="card-icon-chip card-icon-primary">
+                <ListTodo size={19} />
+              </span>
+              <div>
+                <h2 className="heading-md">Pending Scans</h2>
+                <p className="text-small">
+                  {scans.length === 0
+                    ? "No folders waiting right now"
+                    : `${scans.length} folder${scans.length === 1 ? "" : "s"} currently queued`}
+                </p>
+              </div>
             </div>
             <Link
               to="/scans"
@@ -385,42 +459,6 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-
-        <div className="card">
-          <h2 className="heading-md" style={{ marginBottom: "1rem" }}>
-            Queue Summary
-          </h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: "0.75rem",
-            }}
-          >
-            <div
-              style={{
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-lg)",
-                background: "rgba(255, 255, 255, 0.01)",
-                padding: "1rem",
-              }}
-            >
-              <p className="text-stat-label">Queued</p>
-              <p className="text-stat-value">{scans.length}</p>
-            </div>
-            <div
-              style={{
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-lg)",
-                background: "rgba(255, 255, 255, 0.01)",
-                padding: "1rem",
-              }}
-            >
-              <p className="text-stat-label">History Entries</p>
-              <p className="text-stat-value">{history.length}</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="card" style={{ width: "100%" }}>
@@ -434,7 +472,14 @@ export default function Dashboard() {
             flexWrap: "wrap",
           }}
         >
-          <h2 className="heading-md">Scan History</h2>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}
+          >
+            <span className="card-icon-chip card-icon-success">
+              <CheckCircle2 size={19} />
+            </span>
+            <h2 className="heading-md">Scan History</h2>
+          </div>
           <p className="text-small">Last {history.length} events</p>
         </div>
         <div className="dashboard-history-shell">
@@ -501,20 +546,19 @@ export default function Dashboard() {
       </div>
 
       <div className="card" style={{ width: "100%" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "1rem",
-            marginBottom: "1rem",
-            flexWrap: "wrap",
-          }}
-        >
-          <h2 className="heading-md">Runtime Logs</h2>
-          <p className="text-small">
-            Tail of activity.log ({runtimeLogs.length} lines)
-          </p>
+        <div className="dashboard-logs-card-head">
+          <div className="dashboard-recent-title-wrap">
+            <span className="dashboard-recent-icon">
+              <ScrollText size={18} />
+            </span>
+            <h2 className="heading-md">Recent Logs</h2>
+            <span className="dashboard-recent-meta">
+              Last {runtimeLogs.length} entries
+            </span>
+          </div>
+          <Link to="/logs" className="dashboard-recent-link">
+            View All
+          </Link>
         </div>
 
         <div ref={runtimeLogContainerRef} className="dashboard-logs-shell">
@@ -524,16 +568,12 @@ export default function Dashboard() {
             <div className="dashboard-log-list">
               {runtimeLogs.map((line, index) => {
                 const parsed = parseRuntimeLogLine(line);
-                const Icon = parsed.icon;
 
                 return (
                   <div
                     key={`${line}-${index}`}
                     className={`dashboard-log-row dashboard-log-${parsed.tone}`}
                   >
-                    <span className="dashboard-log-icon">
-                      <Icon size={12} />
-                    </span>
                     {parsed.timestamp ? (
                       <span className="dashboard-log-ts">
                         {parsed.timestamp}
@@ -549,7 +589,6 @@ export default function Dashboard() {
                     <span className="dashboard-log-message">
                       {parsed.message}
                     </span>
-                    <ChevronRight size={12} className="dashboard-log-chevron" />
                   </div>
                 );
               })}

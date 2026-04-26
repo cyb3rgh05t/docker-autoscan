@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageHeader from "../components/PageHeader";
+import { useUnsavedChanges } from "../components/UnsavedChangesContext";
 
 type PlexConfig = {
   url: string;
@@ -39,14 +40,14 @@ type ASTConfig = {
 
 function TargetSection<T extends { url: string }>({
   title,
-  dotColor,
+  chipClass,
   targets,
   fields,
   emptyTarget,
   onChange,
 }: {
   title: string;
-  dotColor: string;
+  chipClass: string;
   targets: T[];
   fields: {
     key: keyof T;
@@ -83,16 +84,9 @@ function TargetSection<T extends { url: string }>({
         onClick={() => setOpen((o) => !o)}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
-          <span
-            className={`status-dot`}
-            style={{
-              background: dotColor,
-              width: "0.625rem",
-              height: "0.625rem",
-              borderRadius: "50%",
-              flexShrink: 0,
-            }}
-          />
+          <div className={`settings-icon-chip ${chipClass}`}>
+            <MonitorPlay size={13} />
+          </div>
           <span style={{ fontWeight: 600 }}>{title}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -281,6 +275,7 @@ function TargetSection<T extends { url: string }>({
 
 export default function TargetsPage() {
   const qc = useQueryClient();
+  const { setHasUnsavedChanges } = useUnsavedChanges();
   const { data: config, isLoading } = useQuery({
     queryKey: ["config"],
     queryFn: fetchConfig,
@@ -307,6 +302,14 @@ export default function TargetsPage() {
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
+
+  useEffect(() => {
+    setHasUnsavedChanges(dirty);
+  }, [dirty, setHasUnsavedChanges]);
+
+  useEffect(() => {
+    return () => setHasUnsavedChanges(false);
+  }, [setHasUnsavedChanges]);
 
   const saveMut = useMutation({
     mutationFn: (payload: Record<string, unknown>) => saveConfig(payload),
@@ -389,9 +392,26 @@ export default function TargetsPage() {
         }
       />
 
+      <TargetSection<ASTConfig>
+        title="Autoscan (chain)"
+        chipClass="settings-icon-primary"
+        targets={(targets.autoscan || []) as ASTConfig[]}
+        emptyTarget={{ url: "", username: "", password: "", rewrite: [] }}
+        fields={[
+          {
+            key: "url",
+            label: "Autoscan URL",
+            placeholder: "http://autoscan2:3030",
+          },
+          { key: "username", label: "Username" },
+          { key: "password", label: "Password", type: "password" },
+        ]}
+        onChange={(v) => update("autoscan", v)}
+      />
+
       <TargetSection<PlexConfig>
         title="Plex"
-        dotColor="#e5a00d"
+        chipClass="settings-icon-amber"
         targets={(targets.plex || []) as PlexConfig[]}
         emptyTarget={{ url: "", token: "", rewrite: [] }}
         fields={[
@@ -408,7 +428,7 @@ export default function TargetsPage() {
 
       <TargetSection<EmbyConfig>
         title="Emby"
-        dotColor="#52b54b"
+        chipClass="settings-icon-emerald"
         targets={(targets.emby || []) as EmbyConfig[]}
         emptyTarget={{ url: "", token: "", rewrite: [] }}
         fields={[
@@ -420,7 +440,7 @@ export default function TargetsPage() {
 
       <TargetSection<JFConfig>
         title="Jellyfin"
-        dotColor="#aa5cc3"
+        chipClass="settings-icon-purple"
         targets={(targets.jellyfin || []) as JFConfig[]}
         emptyTarget={{ url: "", token: "", rewrite: [] }}
         fields={[
@@ -432,23 +452,6 @@ export default function TargetsPage() {
           { key: "token", label: "API Key", type: "password" },
         ]}
         onChange={(v) => update("jellyfin", v)}
-      />
-
-      <TargetSection<ASTConfig>
-        title="Autoscan (chain)"
-        dotColor="var(--color-primary)"
-        targets={(targets.autoscan || []) as ASTConfig[]}
-        emptyTarget={{ url: "", username: "", password: "", rewrite: [] }}
-        fields={[
-          {
-            key: "url",
-            label: "Autoscan URL",
-            placeholder: "http://autoscan2:3030",
-          },
-          { key: "username", label: "Username" },
-          { key: "password", label: "Password", type: "password" },
-        ]}
-        onChange={(v) => update("autoscan", v)}
       />
     </div>
   );

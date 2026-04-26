@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageHeader from "../components/PageHeader";
+import { useUnsavedChanges } from "../components/UnsavedChangesContext";
 
 type ArrTrigger = {
   name: string;
@@ -21,10 +22,12 @@ type ArrTrigger = {
 
 function ArrSection({
   title,
+  chipClass,
   triggers,
   onChange,
 }: {
   title: string;
+  chipClass: string;
   triggers: ArrTrigger[];
   onChange: (triggers: ArrTrigger[]) => void;
 }) {
@@ -45,7 +48,13 @@ function ArrSection({
     );
 
   return (
-    <div className="border border-gray-800 rounded-xl overflow-hidden">
+    <div
+      style={{
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-lg)",
+        overflow: "hidden",
+      }}
+    >
       <button
         style={{
           width: "100%",
@@ -61,7 +70,12 @@ function ArrSection({
         }}
         onClick={() => setOpen((o) => !o)}
       >
-        <span style={{ fontWeight: 600 }}>{title}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+          <div className={`settings-icon-chip ${chipClass}`}>
+            <Webhook size={13} />
+          </div>
+          <span style={{ fontWeight: 600 }}>{title}</span>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <span
             style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}
@@ -222,6 +236,7 @@ function ArrSection({
 
 export default function TriggersPage() {
   const qc = useQueryClient();
+  const { setHasUnsavedChanges } = useUnsavedChanges();
   const { data: config, isLoading } = useQuery({
     queryKey: ["config"],
     queryFn: fetchConfig,
@@ -250,6 +265,14 @@ export default function TriggersPage() {
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
+
+  useEffect(() => {
+    setHasUnsavedChanges(dirty);
+  }, [dirty, setHasUnsavedChanges]);
+
+  useEffect(() => {
+    return () => setHasUnsavedChanges(false);
+  }, [setHasUnsavedChanges]);
 
   const saveMut = useMutation({
     mutationFn: saveConfig,
@@ -377,6 +400,15 @@ export default function TriggersPage() {
         <ArrSection
           key={type}
           title={type.charAt(0).toUpperCase() + type.slice(1)}
+          chipClass={
+            type === "sonarr"
+              ? "settings-icon-blue"
+              : type === "radarr"
+                ? "settings-icon-emerald"
+                : type === "lidarr"
+                  ? "settings-icon-amber"
+                  : "settings-icon-purple"
+          }
           triggers={(triggers[type] as ArrTrigger[]) || []}
           onChange={(v) => handleTriggersChange(type, v)}
         />

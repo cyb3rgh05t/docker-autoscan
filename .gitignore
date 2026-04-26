@@ -28,3 +28,6 @@ config/*.db
 config/*.log
 
 /.task/
+agent.md
+AGENTS.md
+start-local.ps1
