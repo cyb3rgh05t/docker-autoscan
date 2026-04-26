@@ -16,6 +16,12 @@ import {
   LayoutDashboard,
   Circle,
   XCircle,
+  Server,
+  ChevronRight,
+  TerminalSquare,
+  AlertTriangle,
+  Bug,
+  Info,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 
@@ -68,6 +74,72 @@ function timeAgo(iso: string): string {
     return `${h}h ${m}m ago`;
   }
   return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function parseTargetLabel(raw: string): { name: string; endpoint?: string } {
+  const match = raw.match(/^([^()]+)\((.+)\)$/);
+  if (!match) {
+    return { name: raw };
+  }
+
+  return {
+    name: match[1].trim(),
+    endpoint: match[2].trim(),
+  };
+}
+
+function toneForLogLevel(level: string): {
+  tone: "error" | "warning" | "debug" | "success" | "info";
+  icon: React.ElementType;
+} {
+  if (level === "ERR" || level === "ERROR" || level === "CRT") {
+    return { tone: "error", icon: XCircle };
+  }
+
+  if (level === "WRN" || level === "WARNING") {
+    return { tone: "warning", icon: AlertTriangle };
+  }
+
+  if (level === "DBG" || level === "DEBUG") {
+    return { tone: "debug", icon: Bug };
+  }
+
+  if (level === "INF" || level === "INFO") {
+    return { tone: "success", icon: Info };
+  }
+
+  return { tone: "info", icon: TerminalSquare };
+}
+
+function parseRuntimeLogLine(line: string): {
+  timestamp?: string;
+  level?: string;
+  message: string;
+  tone: "error" | "warning" | "debug" | "success" | "info";
+  icon: React.ElementType;
+} {
+  const match = line.match(
+    /^(?<ts>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+(?<level>[A-Z]{3,8})\s+(?<msg>.*)$/,
+  );
+
+  if (!match || !match.groups) {
+    return {
+      message: line,
+      tone: "info",
+      icon: TerminalSquare,
+    };
+  }
+
+  const level = match.groups.level;
+  const tone = toneForLogLevel(level);
+
+  return {
+    timestamp: match.groups.ts,
+    level,
+    message: match.groups.msg,
+    tone: tone.tone,
+    icon: tone.icon,
+  };
 }
 
 function priorityTone(priority: number): {
@@ -208,28 +280,38 @@ export default function Dashboard() {
           <h2 className="heading-md" style={{ marginBottom: "1rem" }}>
             Target Status
           </h2>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
-          >
-            {Object.entries(stats.targets_available).map(([name, ok]) => (
-              <div key={name} className="card-row">
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "0.8125rem",
-                    color: "var(--color-text)",
-                  }}
-                >
-                  {name}
-                </span>
-                <span
-                  className={ok ? "badge badge-success" : "badge badge-error"}
-                >
-                  {ok ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                  {ok ? "Available" : "Unavailable"}
-                </span>
-              </div>
-            ))}
+          <div className="dashboard-target-grid">
+            {Object.entries(stats.targets_available).map(([rawName, ok]) => {
+              const parsed = parseTargetLabel(rawName);
+
+              return (
+                <div key={rawName} className="dashboard-target-card">
+                  <div className="dashboard-target-head">
+                    <div className="dashboard-target-name-wrap">
+                      <span className="dashboard-target-icon">
+                        <Server size={12} />
+                      </span>
+                      <span className="dashboard-target-name">
+                        {parsed.name}
+                      </span>
+                    </div>
+                    <span
+                      className={
+                        ok ? "badge badge-success" : "badge badge-error"
+                      }
+                    >
+                      {ok ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                      {ok ? "Available" : "Unavailable"}
+                    </span>
+                  </div>
+                  {parsed.endpoint ? (
+                    <div className="dashboard-target-endpoint">
+                      {parsed.endpoint}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -269,66 +351,27 @@ export default function Dashboard() {
             </Link>
           </div>
           {scans.length === 0 ? (
-            <p className="text-small">Queue is empty</p>
+            <p className="text-small dashboard-empty-hint">Queue is empty</p>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.75rem",
-              }}
-            >
+            <div className="dashboard-pending-list">
               {scans.slice(0, 8).map((s) => (
-                <div
-                  key={s.folder}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(0, 1fr) auto",
-                    alignItems: "center",
-                    gap: "0.75rem",
-                    padding: "0.85rem 0.95rem",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "var(--radius-lg)",
-                    background: "rgba(255, 255, 255, 0.01)",
-                  }}
-                >
+                <div key={s.folder} className="dashboard-pending-item">
                   <div style={{ minWidth: 0 }}>
-                    <div
-                      className="truncate"
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        color: "var(--color-text)",
-                        fontSize: "0.78rem",
-                        marginBottom: "0.35rem",
-                      }}
-                    >
+                    <div className="dashboard-pending-path truncate">
                       {s.folder}
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "0.65rem",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        fontSize: "0.72rem",
-                        color: "var(--color-text-muted)",
-                      }}
-                    >
-                      <span>queued {timeAgo(s.time)}</span>
-                      <span>
+                    <div className="dashboard-pending-meta">
+                      <span className="dashboard-mini-chip">
+                        queued {timeAgo(s.time)}
+                      </span>
+                      <span className="dashboard-mini-chip">
                         scheduled {new Date(s.time).toLocaleTimeString()}
                       </span>
                     </div>
                   </div>
                   <span
-                    style={{
-                      ...priorityTone(s.priority),
-                      fontSize: "0.72rem",
-                      fontWeight: 600,
-                      borderRadius: "999px",
-                      padding: "0.35rem 0.6rem",
-                      whiteSpace: "nowrap",
-                    }}
+                    style={{ ...priorityTone(s.priority) }}
+                    className="dashboard-priority-pill"
                   >
                     {priorityTone(s.priority).label}
                   </span>
@@ -394,16 +437,7 @@ export default function Dashboard() {
           <h2 className="heading-md">Scan History</h2>
           <p className="text-small">Last {history.length} events</p>
         </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-lg)",
-            overflow: "hidden",
-            background: "rgba(255, 255, 255, 0.01)",
-          }}
-        >
+        <div className="dashboard-history-shell">
           {history.length === 0 ? (
             <p className="text-small" style={{ padding: "1rem 1.1rem" }}>
               No history yet
@@ -413,54 +447,52 @@ export default function Dashboard() {
               {history.map((h, index) => (
                 <div
                   key={h.id}
+                  className="dashboard-history-row"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "auto minmax(0, 1fr) auto",
-                    alignItems: "center",
-                    gap: "0.9rem",
-                    padding: "0.85rem 1.1rem",
                     borderBottom:
-                      index === history.length - 1
-                        ? "none"
-                        : "1px solid var(--color-border)",
-                    fontSize: "0.75rem",
+                      index === history.length - 1 ? "none" : undefined,
                   }}
                 >
                   {h.status === "success" ? (
                     <CheckCircle2
                       size={14}
                       color="var(--color-success)"
-                      style={{ flexShrink: 0 }}
+                      style={{ flexShrink: 0, marginTop: "0.1rem" }}
                     />
                   ) : (
                     <XCircle
                       size={14}
                       color="var(--color-error)"
-                      style={{ flexShrink: 0 }}
+                      style={{ flexShrink: 0, marginTop: "0.1rem" }}
                     />
                   )}
-                  <span
-                    className="truncate"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      color: "var(--color-text)",
-                    }}
-                  >
-                    [
-                    {new Date(
-                      h.completed_at || h.triggered_at,
-                    ).toLocaleTimeString()}
-                    ] {h.target} :: {h.folder}
-                    {h.message ? ` :: ${h.message}` : ""}
-                  </span>
-                  <span
-                    style={{
-                      color: "var(--color-text-muted)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {h.status}
-                  </span>
+                  <div className="dashboard-history-content">
+                    <div className="dashboard-history-meta">
+                      <span className="dashboard-mini-chip">
+                        {new Date(
+                          h.completed_at || h.triggered_at,
+                        ).toLocaleTimeString()}
+                      </span>
+                      <span className="badge badge-info badge-mini">
+                        {h.target}
+                      </span>
+                      <span
+                        className={
+                          h.status === "success"
+                            ? "badge badge-success badge-mini"
+                            : "badge badge-error badge-mini"
+                        }
+                      >
+                        {h.status}
+                      </span>
+                    </div>
+                    <div className="dashboard-history-folder">{h.folder}</div>
+                    {h.message ? (
+                      <div className="dashboard-history-message">
+                        {h.message}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
@@ -485,33 +517,43 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div
-          ref={runtimeLogContainerRef}
-          style={{
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-lg)",
-            background: "#070707",
-            padding: "0.9rem 1rem",
-            maxHeight: "22rem",
-            overflow: "auto",
-          }}
-        >
+        <div ref={runtimeLogContainerRef} className="dashboard-logs-shell">
           {runtimeLogs.length === 0 ? (
             <p className="text-small">No runtime logs yet.</p>
           ) : (
-            <pre
-              style={{
-                margin: 0,
-                fontFamily: "var(--font-mono)",
-                fontSize: "0.75rem",
-                lineHeight: 1.55,
-                color: "var(--color-text)",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              {runtimeLogs.join("\n")}
-            </pre>
+            <div className="dashboard-log-list">
+              {runtimeLogs.map((line, index) => {
+                const parsed = parseRuntimeLogLine(line);
+                const Icon = parsed.icon;
+
+                return (
+                  <div
+                    key={`${line}-${index}`}
+                    className={`dashboard-log-row dashboard-log-${parsed.tone}`}
+                  >
+                    <span className="dashboard-log-icon">
+                      <Icon size={12} />
+                    </span>
+                    {parsed.timestamp ? (
+                      <span className="dashboard-log-ts">
+                        {parsed.timestamp}
+                      </span>
+                    ) : null}
+                    {parsed.level ? (
+                      <span
+                        className={`dashboard-log-level dashboard-log-level-${parsed.tone}`}
+                      >
+                        {parsed.level}
+                      </span>
+                    ) : null}
+                    <span className="dashboard-log-message">
+                      {parsed.message}
+                    </span>
+                    <ChevronRight size={12} className="dashboard-log-chevron" />
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

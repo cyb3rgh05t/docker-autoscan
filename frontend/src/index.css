@@ -23,3 +23,295 @@
   font-size: 0.75rem;
   color: var(--color-text);
 }
+
+/* ── Dashboard visual polish ─────────────────────────────────── */
+.dashboard-target-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.dashboard-target-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(216, 237, 24, 0.04)
+  );
+  padding: 0.8rem 0.9rem;
+}
+
+.dashboard-target-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dashboard-target-name-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.dashboard-target-icon {
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+}
+
+.dashboard-target-name {
+  font-size: 0.82rem;
+  color: var(--color-text-white);
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+
+.dashboard-target-endpoint {
+  margin-top: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+  color: var(--color-text-muted);
+  word-break: break-all;
+}
+
+.dashboard-empty-hint {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.8rem;
+}
+
+.dashboard-pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.dashboard-pending-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(0, 0, 0, 0.1)
+  );
+}
+
+.dashboard-pending-path {
+  font-family: var(--font-mono);
+  color: var(--color-text-white);
+  font-size: 0.77rem;
+  margin-bottom: 0.4rem;
+}
+
+.dashboard-pending-meta {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dashboard-mini-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.16rem 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+}
+
+.dashboard-priority-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  padding: 0.36rem 0.62rem;
+  white-space: nowrap;
+}
+
+.dashboard-history-shell {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.015),
+    rgba(255, 255, 255, 0.005)
+  );
+}
+
+.dashboard-history-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-history-content {
+  min-width: 0;
+}
+
+.dashboard-history-meta {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.45rem;
+}
+
+.dashboard-history-folder {
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  margin-bottom: 0.25rem;
+  word-break: break-word;
+}
+
+.dashboard-history-message {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.dashboard-logs-shell {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(
+    circle at 10% 0%,
+    rgba(216, 237, 24, 0.05),
+    #070707 40%
+  );
+  padding: 0.8rem;
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.dashboard-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.dashboard-log-row {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  padding: 0.42rem 0.5rem;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.dashboard-log-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-log-ts {
+  color: var(--color-text-muted);
+}
+
+.dashboard-log-level {
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-log-message {
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dashboard-log-chevron {
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.dashboard-log-success {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.dashboard-log-success .dashboard-log-icon,
+.dashboard-log-level-success {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.38);
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.dashboard-log-warning {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.dashboard-log-warning .dashboard-log-icon,
+.dashboard-log-level-warning {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.38);
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.dashboard-log-error {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.dashboard-log-error .dashboard-log-icon,
+.dashboard-log-level-error {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.38);
+  background: rgba(239, 68, 68, 0.14);
+}
+
+.dashboard-log-debug {
+  border-color: rgba(96, 165, 250, 0.24);
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.dashboard-log-debug .dashboard-log-icon,
+.dashboard-log-level-debug {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.38);
+  background: rgba(59, 130, 246, 0.14);
+}
+
+.dashboard-log-info {
+  border-color: rgba(156, 163, 175, 0.26);
+}
+
+.dashboard-log-info .dashboard-log-icon,
+.dashboard-log-level-info {
+  color: #d1d5db;
+  border-color: rgba(209, 213, 219, 0.34);
+  background: rgba(209, 213, 219, 0.1);
+}
+
+@media (max-width: 768px) {
+  .dashboard-log-row {
+    grid-template-columns: auto auto minmax(0, 1fr);
+  }
+
+  .dashboard-log-level,
+  .dashboard-log-chevron {
+    display: none;
+  }
+}
