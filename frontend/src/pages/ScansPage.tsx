@@ -29,6 +29,27 @@ function timeAgo(iso: string) {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
+function parseTargetName(raw: string) {
+  return raw.replace(/\s*\(.*?\)\s*$/, "").trim() || raw;
+}
+
+function targetBadgeStyle(targetName: string) {
+  const normalized = targetName.trim().toLowerCase() || "target";
+  let hash = 0;
+
+  for (let i = 0; i < normalized.length; i += 1) {
+    hash = normalized.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  const hue = Math.abs(hash) % 360;
+
+  return {
+    background: `hsla(${hue}, 85%, 52%, 0.16)`,
+    border: `1px solid hsla(${hue}, 90%, 62%, 0.46)`,
+    color: `hsl(${hue}, 90%, 72%)`,
+  };
+}
+
 export default function ScansPage() {
   const qc = useQueryClient();
   const [folder, setFolder] = useState("");
@@ -269,55 +290,64 @@ export default function ScansPage() {
                 </tr>
               </thead>
               <tbody>
-                {history.map((h: ScanHistoryEntry) => (
-                  <tr key={h.id}>
-                    <td>
-                      {h.status === "success" ? (
-                        <CheckCircle2 size={14} color="var(--color-success)" />
-                      ) : (
-                        <XCircle size={14} color="var(--color-error)" />
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "0.75rem",
-                      }}
-                    >
-                      {h.folder}
-                      {h.message && (
-                        <p
-                          style={{
-                            color: "var(--color-error)",
-                            fontSize: "0.7rem",
-                            marginTop: "0.15rem",
-                          }}
+                {history.map((h: ScanHistoryEntry) => {
+                  const targetName = parseTargetName(h.target);
+
+                  return (
+                    <tr key={h.id}>
+                      <td>
+                        {h.status === "success" ? (
+                          <CheckCircle2
+                            size={14}
+                            color="var(--color-success)"
+                          />
+                        ) : (
+                          <XCircle size={14} color="var(--color-error)" />
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        {h.folder}
+                        {h.message && (
+                          <p
+                            style={{
+                              color: "var(--color-error)",
+                              fontSize: "0.7rem",
+                              marginTop: "0.15rem",
+                            }}
+                          >
+                            {h.message}
+                          </p>
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "var(--color-text-muted)",
+                        }}
+                      >
+                        <span
+                          className="badge badge-mini"
+                          style={targetBadgeStyle(targetName)}
                         >
-                          {h.message}
-                        </p>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--color-text-muted)",
-                      }}
-                    >
-                      <span className="badge badge-info badge-mini">
-                        {h.target.replace(/\s*\(.*?\)\s*$/, "").trim() ||
-                          h.target}
-                      </span>
-                    </td>
-                    <td
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--color-text-muted)",
-                      }}
-                    >
-                      {timeAgo(h.completed_at)}
-                    </td>
-                  </tr>
-                ))}
+                          {targetName}
+                        </span>
+                      </td>
+                      <td
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "var(--color-text-muted)",
+                        }}
+                      >
+                        {timeAgo(h.completed_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

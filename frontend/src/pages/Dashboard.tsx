@@ -86,6 +86,23 @@ function parseTargetLabel(raw: string): { name: string; endpoint?: string } {
   };
 }
 
+function targetBadgeStyle(targetName: string) {
+  const normalized = targetName.trim().toLowerCase() || "target";
+  let hash = 0;
+
+  for (let i = 0; i < normalized.length; i += 1) {
+    hash = normalized.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  const hue = Math.abs(hash) % 360;
+
+  return {
+    background: `hsla(${hue}, 85%, 52%, 0.16)`,
+    border: `1px solid hsla(${hue}, 90%, 62%, 0.46)`,
+    color: `hsl(${hue}, 90%, 72%)`,
+  };
+}
+
 function toneForLogLevel(level: string): {
   tone: "error" | "warning" | "debug" | "success" | "info";
 } {
@@ -489,57 +506,64 @@ export default function Dashboard() {
             </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {history.map((h, index) => (
-                <div
-                  key={h.id}
-                  className="dashboard-history-row"
-                  style={{
-                    borderBottom:
-                      index === history.length - 1 ? "none" : undefined,
-                  }}
-                >
-                  {h.status === "success" ? (
-                    <CheckCircle2
-                      size={14}
-                      color="var(--color-success)"
-                      style={{ flexShrink: 0, marginTop: "0.1rem" }}
-                    />
-                  ) : (
-                    <XCircle
-                      size={14}
-                      color="var(--color-error)"
-                      style={{ flexShrink: 0, marginTop: "0.1rem" }}
-                    />
-                  )}
-                  <div className="dashboard-history-content">
-                    <div className="dashboard-history-meta">
-                      <span className="dashboard-mini-chip">
-                        {new Date(
-                          h.completed_at || h.triggered_at,
-                        ).toLocaleTimeString()}
-                      </span>
-                      <span className="badge badge-info badge-mini">
-                        {parseTargetLabel(h.target).name}
-                      </span>
-                      <span
-                        className={
-                          h.status === "success"
-                            ? "badge badge-success badge-mini"
-                            : "badge badge-error badge-mini"
-                        }
-                      >
-                        {h.status}
-                      </span>
-                    </div>
-                    <div className="dashboard-history-folder">{h.folder}</div>
-                    {h.message ? (
-                      <div className="dashboard-history-message">
-                        {h.message}
+              {history.map((h, index) => {
+                const targetName = parseTargetLabel(h.target).name;
+
+                return (
+                  <div
+                    key={h.id}
+                    className="dashboard-history-row"
+                    style={{
+                      borderBottom:
+                        index === history.length - 1 ? "none" : undefined,
+                    }}
+                  >
+                    {h.status === "success" ? (
+                      <CheckCircle2
+                        size={14}
+                        color="var(--color-success)"
+                        style={{ flexShrink: 0, marginTop: "0.1rem" }}
+                      />
+                    ) : (
+                      <XCircle
+                        size={14}
+                        color="var(--color-error)"
+                        style={{ flexShrink: 0, marginTop: "0.1rem" }}
+                      />
+                    )}
+                    <div className="dashboard-history-content">
+                      <div className="dashboard-history-meta">
+                        <span className="dashboard-mini-chip">
+                          {new Date(
+                            h.completed_at || h.triggered_at,
+                          ).toLocaleTimeString()}
+                        </span>
+                        <span
+                          className="badge badge-mini"
+                          style={targetBadgeStyle(targetName)}
+                        >
+                          {targetName}
+                        </span>
+                        <span
+                          className={
+                            h.status === "success"
+                              ? "badge badge-success badge-mini"
+                              : "badge badge-error badge-mini"
+                          }
+                        >
+                          {h.status}
+                        </span>
                       </div>
-                    ) : null}
+                      <div className="dashboard-history-folder">{h.folder}</div>
+                      {h.message ? (
+                        <div className="dashboard-history-message">
+                          {h.message}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
