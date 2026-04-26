@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchConfig, saveConfig, type AutoscanConfig } from "../api/client";
+import {
+  fetchConfig,
+  saveConfig,
+  fetchHealth,
+  fetchStats,
+  type AutoscanConfig,
+} from "../api/client";
 import { useState, useEffect, useRef } from "react";
 
 import {
@@ -10,6 +16,12 @@ import {
   Info,
   BookOpen,
   FileCode2,
+  Cpu,
+  Database,
+  GitBranch,
+  ShieldCheck,
+  Server,
+  Workflow,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageHeader from "../components/PageHeader";
@@ -37,6 +49,15 @@ const tabs = [
 
 type SettingsTab = (typeof tabs)[number]["key"];
 
+function formatUptime(seconds: number): string {
+  if (seconds < 60) return `${Math.floor(seconds)}s`;
+  if (seconds < 3600)
+    return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
+}
+
 export default function ConfigPage() {
   const qc = useQueryClient();
   const {
@@ -46,6 +67,18 @@ export default function ConfigPage() {
   } = useQuery({
     queryKey: ["config"],
     queryFn: fetchConfig,
+  });
+
+  const { data: health } = useQuery({
+    queryKey: ["health"],
+    queryFn: fetchHealth,
+    refetchInterval: 30000,
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ["stats"],
+    queryFn: fetchStats,
+    refetchInterval: 5000,
   });
 
   const [raw, setRaw] = useState("");
@@ -189,21 +222,29 @@ export default function ConfigPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
             gap: "1rem",
           }}
         >
           <div
             className="card"
-            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              background:
+                "radial-gradient(circle at 100% 0%, rgba(216,237,24,0.08), rgba(10,10,10,1) 50%)",
+            }}
           >
             <div>
               <h2 className="heading-md" style={{ marginBottom: "0.35rem" }}>
-                Autoscan v2
+                Autoscan Control Plane
               </h2>
               <p className="text-body">
-                Python/FastAPI backend with a React web UI for queue handling,
-                webhook triggers, targets, and raw configuration management.
+                Autoscan verbindet Webhook-Events mit deinen Media-Zielen und
+                steuert die Queue-Verarbeitung zentral. Die App kombiniert eine
+                FastAPI Runtime mit einer React UI fur Monitoring, Debugging und
+                Konfigurationspflege.
               </p>
             </div>
             <div
@@ -211,18 +252,30 @@ export default function ConfigPage() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "0.75rem",
+                gap: "0.6rem",
               }}
             >
-              <div>
-                <p className="text-stat-label">Stack</p>
-                <p className="text-body">
-                  FastAPI, SQLAlchemy, SQLite, React, Vite, Docker
-                </p>
+              <div className="card-row">
+                <span className="text-stat-label">Version</span>
+                <span className="text-mono">
+                  {health?.version ?? "unknown"}
+                </span>
               </div>
-              <div>
-                <p className="text-stat-label">Mounted Config Directory</p>
-                <p className="text-body text-mono">/config</p>
+              <div className="card-row">
+                <span className="text-stat-label">Commit</span>
+                <span className="text-mono">{health?.commit ?? "unknown"}</span>
+              </div>
+              <div className="card-row">
+                <span className="text-stat-label">Uptime</span>
+                <span className="text-mono">
+                  {stats ? formatUptime(stats.uptime_seconds) : "unknown"}
+                </span>
+              </div>
+              <div className="card-row">
+                <span className="text-stat-label">Queue</span>
+                <span className="text-mono">
+                  {stats ? `${stats.scans_remaining} waiting` : "unknown"}
+                </span>
               </div>
             </div>
           </div>
@@ -231,28 +284,144 @@ export default function ConfigPage() {
             className="card"
             style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
           >
-            <h2 className="heading-md">Available Features</h2>
+            <h2 className="heading-md">Core Modules</h2>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                gap: "0.7rem",
+              }}
+            >
+              {[
+                {
+                  title: "Webhook Ingress",
+                  body: "Sonarr, Radarr, Lidarr, Readarr und manuelle Trigger.",
+                  Icon: Workflow,
+                },
+                {
+                  title: "Target Dispatch",
+                  body: "Plex, Emby, Jellyfin oder chained Autoscan Targets.",
+                  Icon: Server,
+                },
+                {
+                  title: "Queue + History",
+                  body: "Priorisierte Queue, persistiert in SQLite, mit Verlauf.",
+                  Icon: Database,
+                },
+                {
+                  title: "Runtime API",
+                  body: "FastAPI Endpunkte fur Stats, Health, Logs und Config.",
+                  Icon: Cpu,
+                },
+              ].map(({ title, body, Icon }) => (
+                <div key={title} className="card-nested">
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      marginBottom: "0.35rem",
+                    }}
+                  >
+                    <Icon size={14} style={{ color: "var(--color-primary)" }} />
+                    <p className="heading-sm">{title}</p>
+                  </div>
+                  <p className="text-small">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
+            <h2 className="heading-md">How Autoscan Works</h2>
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "0.75rem",
+                gap: "0.6rem",
               }}
             >
               {[
-                "Webhook triggers for Sonarr, Radarr, Lidarr, Readarr, and manual events",
-                "Targets for Plex, Emby, Jellyfin, and Autoscan chaining",
-                "Priority queue with delay handling and history tracking",
-                "Raw JSON editor for complete config management",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="card-row"
-                  style={{ justifyContent: "flex-start" }}
-                >
-                  <span className="text-body">{item}</span>
+                "Trigger event arrives at /triggers/{name}",
+                "Path and metadata are normalized and queued",
+                "Processor picks next job based on priority",
+                "Configured targets receive scan/update request",
+                "Result is written into history and activity.log",
+              ].map((step, index) => (
+                <div key={step} className="card-row">
+                  <span className="badge badge-primary badge-mini">
+                    {index + 1}
+                  </span>
+                  <span className="text-body">{step}</span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
+            <h2 className="heading-md">Ops Quick Reference</h2>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.6rem",
+              }}
+            >
+              <div className="card-row">
+                <span className="text-stat-label">Config path</span>
+                <span className="text-mono">/config/config.yml</span>
+              </div>
+              <div className="card-row">
+                <span className="text-stat-label">Database</span>
+                <span className="text-mono">/config/autoscan.db</span>
+              </div>
+              <div className="card-row">
+                <span className="text-stat-label">Log file</span>
+                <span className="text-mono">/config/activity.log</span>
+              </div>
+              <div className="card-row">
+                <span className="text-stat-label">Health API</span>
+                <span className="text-mono">/api/health</span>
+              </div>
+              <div className="card-row">
+                <span className="text-stat-label">Stats API</span>
+                <span className="text-mono">/api/stats</span>
+              </div>
+            </div>
+            <div
+              className="infobox infobox-info"
+              style={{ marginTop: "0.25rem" }}
+            >
+              <ShieldCheck size={14} style={{ marginRight: "0.4rem" }} />
+              Tipp: Prufe nach Updates immer zuerst Version und Commit uber
+              <span className="text-mono" style={{ marginLeft: "0.35rem" }}>
+                /api/health
+              </span>
+              .
+            </div>
+            <div
+              className="card-nested"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "0.75rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <p className="text-stat-label">Build Track</p>
+                <p className="text-body">main, dev, nightly, manual dispatch</p>
+              </div>
+              <span className="badge badge-purple">
+                <GitBranch size={12} /> GitHub Actions + GHCR
+              </span>
             </div>
           </div>
         </div>
