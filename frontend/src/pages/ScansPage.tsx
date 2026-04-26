@@ -303,7 +303,10 @@ export default function ScansPage() {
                         color: "var(--color-text-muted)",
                       }}
                     >
-                      {h.target}
+                      <span className="badge badge-info badge-mini">
+                        {h.target.replace(/\s*\(.*?\)\s*$/, "").trim() ||
+                          h.target}
+                      </span>
                     </td>
                     <td
                       style={{

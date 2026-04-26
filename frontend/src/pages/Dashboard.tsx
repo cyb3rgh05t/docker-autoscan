@@ -519,7 +519,7 @@ export default function Dashboard() {
                         ).toLocaleTimeString()}
                       </span>
                       <span className="badge badge-info badge-mini">
-                        {h.target}
+                        {parseTargetLabel(h.target).name}
                       </span>
                       <span
                         className={
