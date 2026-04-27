@@ -1,7 +1,7 @@
 anchors: []
 authentication:
   password: ''
-  username: ''
+  username: fwdf
 minimum-age: 1m
 port: 3030
 scan-delay: 15s
@@ -13,7 +13,7 @@ targets:
     username: ''
   plex:
   - token: ''
-    url: ''http://193.108.118.53:32400''
+    url: ''
 triggers:
   manual:
     priority: 0

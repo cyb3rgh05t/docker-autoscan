@@ -1506,6 +1506,28 @@ table.table {
   }
 }
 
+@keyframes toast-in-right {
+  from {
+    transform: translate3d(28px, 0, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-out-right {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(22px, 0, 0);
+    opacity: 0;
+  }
+}
+
 @keyframes scale-in {
   from {
     transform: scale(0.9);
