@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3030"]
 
     # Version info (injected at build time via env)
-    version: str = "2.0.0"
+    version: str = "2.0.1"
     git_commit: str = "dev"
     build_timestamp: str = "unknown"
 

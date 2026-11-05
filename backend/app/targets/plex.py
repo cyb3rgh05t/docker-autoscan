@@ -10,7 +10,7 @@ from typing import Any
 
 import httpx
 
-from app.targets.base import BaseTarget
+from app.targets.base import BaseTarget, path_in_locations
 
 log = logging.getLogger("autoscan.targets.plex")
 
@@ -60,7 +60,7 @@ class PlexTarget(BaseTarget):
         matching = [
             lib
             for lib in self._libraries
-            if any(folder.startswith(loc) for loc in lib["locations"])
+            if path_in_locations(folder, lib["locations"])
         ]
 
         if not matching:

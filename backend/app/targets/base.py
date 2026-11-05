@@ -10,6 +10,18 @@ from typing import Any
 from app.rewrite import build_rewriter
 
 
+def path_in_locations(folder: str, locations: list[str]) -> bool:
+    """True if folder equals or lies below one of the locations (path-boundary aware)."""
+    folder_norm = folder.replace("\\", "/").rstrip("/")
+    for loc in locations:
+        loc_norm = loc.replace("\\", "/").rstrip("/")
+        if not loc_norm:
+            continue
+        if folder_norm == loc_norm or folder_norm.startswith(loc_norm + "/"):
+            return True
+    return False
+
+
 class BaseTarget(ABC):
     def __init__(self, cfg: dict[str, Any], target_name: str) -> None:
         self._name = target_name

@@ -134,13 +134,15 @@ async def process_once(targets) -> bool:
 
         log.info('Scan processing path="%s" priority=%d', scan.folder, scan.priority)
 
+        # Check all targets first so a later unavailable target cannot cause
+        # earlier targets to receive the same scan again on retry.
+        for target in targets:
+            if not await target.available():
+                log.warning("Target %s unavailable – requeueing scan", target.name)
+                return False
+
         for target in targets:
             try:
-                ok = await target.available()
-                if not ok:
-                    log.warning("Target %s unavailable – requeueing scan", target.name)
-                    return False
-
                 await target.scan(scan.folder)
                 await _record_history(session, scan, target.name, "success", "")
             except Exception as exc:

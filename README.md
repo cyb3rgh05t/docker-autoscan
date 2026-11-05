@@ -91,5 +91,5 @@ http://localhost:3030/triggers/sonarr
 | Variable                | Default                                       | Description                             |
 | ----------------------- | --------------------------------------------- | --------------------------------------- |
 | `AUTOSCAN_CONFIG_DIR`   | `/config`                                     | Directory for `config.yml` and database |
-| `AUTOSCAN_VERSION`      | `2.0.0`                                       | Version string shown in UI              |
+| `AUTOSCAN_VERSION`      | `2.0.1`                                       | Version string shown in UI              |
 | `AUTOSCAN_CORS_ORIGINS` | `http://localhost:5173,http://localhost:3030` | Allowed CORS origins                    |
